@@ -1,0 +1,19 @@
+{
+  "name": "ai-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-powered document workspace with RAG-based chat over your own files",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "test:api": "npm run test --workspace=apps/api",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
