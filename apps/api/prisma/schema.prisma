@@ -1,0 +1,196 @@
+// AI Workspace — Prisma Schema
+// Postgres (Supabase) with pgvector for embedding storage.
+// Local embedding model (all-MiniLM-L6-v2) outputs 384-dim vectors —
+// keeping this small and free-tier friendly instead of 1536-dim OpenAI vectors.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector, pgcrypto]
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum DocumentType {
+  PDF
+  DOCX
+  XLSX
+  CSV
+  IMAGE
+  PPTX
+  NOTE
+  URL
+}
+
+enum ParseStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+// ---------------------------------------------------------------------------
+// MODELS
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  passwordHash  String?      // nullable: OAuth-only users have no local password
+  name          String
+  avatarUrl     String?
+  authProvider  AuthProvider @default(LOCAL)
+  role          UserRole     @default(USER)
+
+  refreshTokens RefreshToken[]
+  ownedProjects Project[]      @relation("ProjectOwner")
+  memberships   ProjectMember[]
+  documents     Document[]     @relation("DocumentUploader")
+  chatSessions  ChatSession[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  ownerId     String
+  owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  tags        String[] @default([])
+  isArchived  Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+
+  members      ProjectMember[]
+  documents    Document[]
+  chatSessions ChatSession[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model ProjectMember {
+  id        String      @id @default(uuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole @default(VIEWER)
+  createdAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model Document {
+  id               String       @id @default(uuid())
+  projectId        String
+  project          Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedById     String
+  uploadedBy       User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  type             DocumentType
+  originalFilename String
+  storageUrl       String
+  sizeBytes        Int?
+  parseStatus      ParseStatus  @default(PENDING)
+  parseError       String?
+
+  chunks           DocumentChunk[]
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([parseStatus])
+}
+
+model DocumentChunk {
+  id          String                  @id @default(uuid())
+  documentId  String
+  document    Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  content     String
+  chunkIndex  Int
+  embedding   Unsupported("vector(384)")?
+  metadata    Json?
+
+  createdAt   DateTime                @default(now())
+
+  @@index([documentId])
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages  ChatMessage[]
+
+  createdAt DateTime      @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String      @id @default(uuid())
+  sessionId      String
+  session        ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role           MessageRole
+  content        String
+  citedChunkIds  String[]    @default([]) // traceability: which chunks grounded this answer
+
+  createdAt      DateTime    @default(now())
+
+  @@index([sessionId])
+}
