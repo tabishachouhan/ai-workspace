@@ -42,3 +42,23 @@ export function sanitizeUser(user) {
   const { passwordHash, ...safe } = user;
   return safe;
 }
+
+export async function loginUser({ email, password }) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user || !user.passwordHash) {
+    const err = new Error("Invalid email or password");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isValid) {
+    const err = new Error("Invalid email or password");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const tokens = await issueTokens(user);
+  return { user: sanitizeUser(user), ...tokens };
+}
