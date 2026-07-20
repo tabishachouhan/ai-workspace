@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "../../lib/prisma.js";
-import { signAccessToken, signRefreshToken } from "../../lib/jwt.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../lib/jwt.js";
 import { env } from "../../config/env.js";
 
 const SALT_ROUNDS = 12;
@@ -55,6 +55,51 @@ export async function loginUser({ email, password }) {
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
     const err = new Error("Invalid email or password");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const tokens = await issueTokens(user);
+  return { user: sanitizeUser(user), ...tokens };
+}
+
+export async function refreshTokens(refreshToken) {
+  let payload;
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    const err = new Error("Invalid or expired refresh token");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+
+  const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+  if (!stored || stored.revoked || stored.expiresAt < new Date()) {
+    // Reuse of an already-rotated (or unknown/expired) token is a red flag -
+    // revoke every active session for this user as a precaution.
+    if (stored) {
+      await prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revoked: false },
+        data: { revoked: true },
+      });
+    }
+    const err = new Error("Invalid or expired refresh token");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  // Rotate: revoke the used token, issue a brand new pair.
+  await prisma.refreshToken.update({
+    where: { id: stored.id },
+    data: { revoked: true },
+  });
+
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user) {
+    const err = new Error("User not found");
     err.statusCode = 401;
     throw err;
   }
