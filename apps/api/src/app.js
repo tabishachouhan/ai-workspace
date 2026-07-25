@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import passport from "./config/passport.js";
+import projectRoutes from "./modules/projects/projects.routes.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.use(errorHandler);
 
