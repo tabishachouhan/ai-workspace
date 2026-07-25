@@ -5,12 +5,15 @@ import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import passport from "./config/passport.js";
 
 const app = express();
 
 app.use(helmet());
 app.use(cors({ origin: env.clientUrl, credentials: true }));
 app.use(express.json());
+app.use(passport.initialize());
+
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
