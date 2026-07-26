@@ -11,6 +11,8 @@ const required = [
   "JWT_REFRESH_SECRET",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
 ];
 
 for (const key of required) {
@@ -33,5 +35,9 @@ export const env = {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+  },
+  supabase: {
+    url: process.env.SUPABASE_URL,
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
 };

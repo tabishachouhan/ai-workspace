@@ -7,6 +7,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import passport from "./config/passport.js";
 import projectRoutes from "./modules/projects/projects.routes.js";
+import documentRoutes from "./modules/documents/documents.routes.js";
 
 const app = express();
 
@@ -14,7 +15,7 @@ app.use(helmet());
 app.use(cors({ origin: env.clientUrl, credentials: true }));
 app.use(express.json());
 app.use(passport.initialize());
-
+app.use("/api", documentRoutes);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
