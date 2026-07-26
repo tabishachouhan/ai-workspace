@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "../../lib/prisma.js";
 import { supabase } from "../../lib/supabase.js";
 import { MIME_TO_DOCUMENT_TYPE } from "./document.constants.js";
+import { getParser } from "./parsers/index.js";
 
 const BUCKET = "documents";
 
@@ -74,4 +75,36 @@ export async function deleteDocument(ownerId, documentId) {
   const document = await getDocument(ownerId, documentId);
   await supabase.storage.from(BUCKET).remove([document.storageUrl]);
   await prisma.document.delete({ where: { id: document.id } });
+}
+
+export async function parseDocument(documentId) {
+  const document = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!document) return;
+
+  await prisma.document.update({
+    where: { id: documentId },
+    data: { parseStatus: "PROCESSING" },
+  });
+
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET).download(document.storageUrl);
+    if (error) throw new Error(`Failed to download file: ${error.message}`);
+
+    const buffer = Buffer.from(await data.arrayBuffer());
+    const parser = getParser(document.type);
+    const text = await parser(buffer);
+
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { parseStatus: "DONE" },
+    });
+
+    return text;
+  } catch (err) {
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { parseStatus: "FAILED", parseError: err.message },
+    });
+    throw err;
+  }
 }

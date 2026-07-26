@@ -1,5 +1,4 @@
-import { uploadDocument, listDocuments, getDocument, deleteDocument } from "./documents.service.js";
-
+import { uploadDocument, listDocuments, getDocument, deleteDocument, parseDocument } from "./documents.service.js";
 export async function upload(req, res, next) {
   try {
     if (!req.file) {
@@ -13,6 +12,13 @@ export async function upload(req, res, next) {
     });
 
     res.status(201).json({ document });
+
+    // Fire-and-forget: parsing happens after the response is sent, so the
+    // upload feels instant. Errors are captured on the document's own
+    // parseStatus/parseError fields, not thrown back to this request.
+    parseDocument(document.id).catch((err) => {
+      console.error(`Failed to parse document ${document.id}:`, err.message);
+    });
   } catch (err) {
     next(err);
   }
