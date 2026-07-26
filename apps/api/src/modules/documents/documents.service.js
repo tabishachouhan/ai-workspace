@@ -3,6 +3,8 @@ import { prisma } from "../../lib/prisma.js";
 import { supabase } from "../../lib/supabase.js";
 import { MIME_TO_DOCUMENT_TYPE } from "./document.constants.js";
 import { getParser } from "./parsers/index.js";
+import { chunkText } from "./chunker.js";
+import { embedText } from "../../lib/embeddings.js";
 
 const BUCKET = "documents";
 
@@ -93,13 +95,25 @@ export async function parseDocument(documentId) {
     const buffer = Buffer.from(await data.arrayBuffer());
     const parser = getParser(document.type);
     const text = await parser(buffer);
+    const chunks = chunkText(text);
+
+    for (const chunk of chunks) {
+      const embedding = await embedText(chunk.content);
+      const vectorLiteral = `[${embedding.join(",")}]`;
+
+      await prisma.$executeRaw`
+        INSERT INTO "DocumentChunk" (id, "documentId", content, "chunkIndex", embedding, "createdAt")
+        VALUES (gen_random_uuid(), ${documentId}, ${chunk.content}, ${chunk.chunkIndex}, ${vectorLiteral}::vector, now())
+      `;
+    }
 
     await prisma.document.update({
       where: { id: documentId },
       data: { parseStatus: "DONE" },
     });
 
-    return text;
+    return chunks;
+    
   } catch (err) {
     await prisma.document.update({
       where: { id: documentId },
