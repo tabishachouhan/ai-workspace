@@ -5,6 +5,8 @@ import {
   getProject,
   updateProject,
   deleteProject,
+  archiveProject,
+  unarchiveProject,
 } from "./projects.service.js";
 
 export async function create(req, res, next) {
@@ -67,6 +69,24 @@ export async function remove(req, res, next) {
   try {
     await deleteProject(req.user.id, req.params.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function archive(req, res, next) {
+  try {
+    const project = await archiveProject(req.user.id, req.params.id);
+    res.status(200).json({ project });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function unarchive(req, res, next) {
+  try {
+    const project = await unarchiveProject(req.user.id, req.params.id);
+    res.status(200).json({ project });
   } catch (err) {
     next(err);
   }

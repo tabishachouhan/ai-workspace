@@ -55,3 +55,13 @@ export async function deleteProject(ownerId, projectId) {
   await getOwnedProject(ownerId, projectId);
   await prisma.project.delete({ where: { id: projectId } });
 }
+
+export async function archiveProject(ownerId, projectId) {
+  await getOwnedProject(ownerId, projectId);
+  return prisma.project.update({ where: { id: projectId }, data: { isArchived: true } });
+}
+
+export async function unarchiveProject(ownerId, projectId) {
+  await getOwnedProject(ownerId, projectId);
+  return prisma.project.update({ where: { id: projectId }, data: { isArchived: false } });
+}
