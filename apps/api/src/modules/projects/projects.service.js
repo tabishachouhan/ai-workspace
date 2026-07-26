@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { getTemplateById } from "./projects.templates.js";
 
 function notFoundError() {
   const err = new Error("Project not found");
@@ -7,8 +8,28 @@ function notFoundError() {
 }
 
 export async function createProject(ownerId, data) {
+  const { templateId, ...rest } = data;
+
+  let templateDefaults = {};
+  if (templateId) {
+    const template = getTemplateById(templateId);
+    if (!template) {
+      const err = new Error("Unknown templateId");
+      err.statusCode = 400;
+      throw err;
+    }
+    templateDefaults = {
+      description: template.description,
+      tags: template.tags,
+    };
+  }
+
   return prisma.project.create({
-    data: { ...data, ownerId },
+    data: {
+      ...templateDefaults,
+      ...rest, // explicit fields always override template defaults
+      ownerId,
+    },
   });
 }
 

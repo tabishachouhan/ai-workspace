@@ -8,6 +8,8 @@ import {
   archiveProject,
   unarchiveProject,
 } from "./projects.service.js";
+import { PROJECT_TEMPLATES } from "./projects.templates.js";
+
 
 export async function create(req, res, next) {
   try {
@@ -90,4 +92,8 @@ export async function unarchive(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+export async function listTemplates(req, res) {
+  res.status(200).json({ templates: PROJECT_TEMPLATES });
 }
