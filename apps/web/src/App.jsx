@@ -4,6 +4,10 @@ import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import LoginPage from "./features/auth/LoginPage";
 import RegisterPage from "./features/auth/RegisterPage";
 import OAuthCallback from "./features/auth/OAuthCallback";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ProjectsPage from "./features/projects/ProjectsPage";
+
+
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -12,42 +16,33 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function Dashboard() {
-  const { user, logout } = useAuth();
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Welcome, {user.name}</h1>
-        <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900">
-          Log out
-        </button>
-      </div>
-      <p className="text-gray-500 text-sm">Projects dashboard coming next.</p>
-    </div>
-  );
-}
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Toaster position="top-right" />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/oauth/callback" element={<OAuthCallback />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+
+      <BrowserRouter>
+        <AuthProvider>
+          <Toaster position="top-right" />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <ProjectsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
