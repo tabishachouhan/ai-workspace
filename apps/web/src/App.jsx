@@ -1,28 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import LoginPage from "./features/auth/LoginPage";
 import RegisterPage from "./features/auth/RegisterPage";
 import OAuthCallback from "./features/auth/OAuthCallback";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProjectsPage from "./features/projects/ProjectsPage";
-
-
+import ProjectDetailPage from "./features/projects/ProjectDetailPage";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
+        Loading...
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
-
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-
       <BrowserRouter>
         <AuthProvider>
           <Toaster position="top-right" />
@@ -35,6 +38,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProjectsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId"
+              element={
+                <ProtectedRoute>
+                  <ProjectDetailPage />
                 </ProtectedRoute>
               }
             />
