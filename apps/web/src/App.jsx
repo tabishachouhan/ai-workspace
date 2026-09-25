@@ -7,6 +7,8 @@ import RegisterPage from "./features/auth/RegisterPage";
 import OAuthCallback from "./features/auth/OAuthCallback";
 import ProjectsPage from "./features/projects/ProjectsPage";
 import ProjectDetailPage from "./features/projects/ProjectDetailPage";
+import LandingPage from "./features/landing/LandingPage";
+import AboutPage from "./features/about/AboutPage";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -30,6 +32,8 @@ function App() {
         <AuthProvider>
           <Toaster position="top-right" />
           <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -49,7 +53,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

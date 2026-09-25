@@ -1,20 +1,35 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
+import {
+  FolderOpen,
+  LayoutGrid,
+  Search,
+  Sparkles,
+  Archive,
+  LogOut,
+  Plus,
+  FileText,
+  ArrowRight,
+} from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useProjects, useCreateProject, useArchiveProject } from "./useProjects";
+import DashboardBackground from "./DashboardBackground";
+import "./dashboard.css";
 
 export default function ProjectsPage() {
   const { user, logout } = useAuth();
-  const { data: projects, isLoading, isError } = useProjects();
+  const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const archiveProject = useArchiveProject();
   const [newName, setNewName] = useState("");
+  const [search, setSearch] = useState("");
+  const prefersReducedMotion = useReducedMotion();
 
   function handleCreate(e) {
     e.preventDefault();
     if (!newName.trim()) return;
-
     createProject.mutate(
       { name: newName },
       {
@@ -22,9 +37,8 @@ export default function ProjectsPage() {
           setNewName("");
           toast.success("Project created");
         },
-        onError: (err) => {
-          toast.error(err.response?.data?.error || "Failed to create project");
-        },
+        onError: (err) =>
+          toast.error(err.response?.data?.error || "Failed to create project"),
       }
     );
   }
@@ -36,63 +50,187 @@ export default function ProjectsPage() {
     });
   }
 
+  const filtered = (projects || []).filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const initials = (user?.name || "?")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900">AI Workspace</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{user.name}</span>
-          <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900">
-            Log out
+    <div className="dashboard-page">
+      <aside className="dashboard-sidebar">
+        <Link to="/" className="brand" aria-label="AI Workspace home">
+          <span className="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+          <span>AI Workspace</span>
+        </Link>
+        <nav>
+          <span className="sidebar-link active">
+            <LayoutGrid size={16} />
+            <span className="link-label">Projects</span>
+          </span>
+        </nav>
+        <div className="sidebar-insight">
+          <Sparkles size={16} />
+          <p>
+            <b>{projects?.length || 0} projects</b>
+            <span>Ready to search and ask</span>
+          </p>
+        </div>
+        <div className="sidebar-user">
+          <span className="user-avatar">{initials}</span>
+          <span>
+            <b>{user?.name}</b>
+            <small>{user?.email}</small>
+          </span>
+        </div>
+        <div className="sidebar-footer">
+          <button type="button" onClick={logout}>
+            <LogOut size={14} /> Log out
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <form onSubmit={handleCreate} className="flex gap-2 mb-8">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New project name..."
-            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-          />
+      <main className="dashboard-main">
+        {/* Living background with drifting aurora gradients & subtle architectural dots */}
+        <DashboardBackground />
+
+        <motion.div
+          className="dashboard-header"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div>
+            <p className="dashboard-kicker">YOUR WORKSPACE</p>
+            <h1>Projects</h1>
+            <p>Every document and answer, organized by project.</p>
+          </div>
+          <div className="dashboard-search">
+            <Search size={15} />
+            <input
+              placeholder="Search projects..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </motion.div>
+
+        <motion.form
+          className="new-project"
+          onSubmit={handleCreate}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <span className="new-project-icon">
+            <Plus size={18} />
+          </span>
+          <div>
+            <label htmlFor="new-project-name">New project</label>
+            <input
+              id="new-project-name"
+              placeholder="Name your project..."
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+          </div>
           <button
             type="submit"
+            className="new-project-submit"
             disabled={createProject.isPending}
-            className="bg-gray-900 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+            style={{
+              backgroundColor: "#0f1115",
+              color: "#ffffff",
+            }}
           >
-            {createProject.isPending ? "Creating..." : "Create"}
+            {createProject.isPending ? (
+              "Creating..."
+            ) : (
+              <>
+                <Plus size={15} strokeWidth={2.5} />
+                <span>Create</span>
+              </>
+            )}
           </button>
-        </form>
+        </motion.form>
 
-        {isLoading && <p className="text-sm text-gray-400">Loading projects...</p>}
-        {isError && <p className="text-sm text-red-600">Failed to load projects.</p>}
+        <motion.div
+          className="projects-heading"
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.12 }}
+        >
+          <div>
+            <h2>All projects</h2>
+            <span>{filtered.length} total</span>
+          </div>
+        </motion.div>
 
-        {projects && projects.length === 0 && (
-          <p className="text-sm text-gray-400">No projects yet. Create your first one above.</p>
+        {isLoading && (
+          <p style={{ padding: "40px 0", color: "var(--dp-muted-foreground)" }}>
+            Loading...
+          </p>
         )}
 
-        <div className="space-y-3">
-          {projects?.map((project) => (
-            <div
-              key={project.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:border-gray-300"
-            >
-              <Link to={`/projects/${project.id}`} className="flex-1">
-                <h3 className="font-medium text-gray-900">{project.name}</h3>
-                {project.description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{project.description}</p>
-                )}
-              </Link>
-              <button
-                onClick={() => handleArchive(project.id)}
-                className="text-xs text-gray-400 hover:text-gray-700 ml-4"
-              >
-                Archive
-              </button>
+        {!isLoading && filtered.length === 0 && (
+          <motion.div
+            className="projects-empty"
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <FolderOpen size={34} />
+            <h3>No projects yet</h3>
+            <p>Create your first project above to get started.</p>
+          </motion.div>
+        )}
+
+        {filtered.map((project, i) => (
+          <motion.article
+            className="project-row"
+            key={project.id}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.45,
+              delay: prefersReducedMotion ? 0 : 0.15 + Math.min(i * 0.05, 0.35),
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            layout
+          >
+            <span className="project-index">{String(i + 1).padStart(2, "0")}</span>
+            <div className="project-copy">
+              <h3>{project.name}</h3>
+              <p>{project.description || "No description"}</p>
+              <span>
+                <FileText size={11} /> {project.isFavorite ? "Favorite" : "Project"}
+              </span>
             </div>
-          ))}
-        </div>
+            <span className="project-updated">
+              Updated {new Date(project.updatedAt).toLocaleDateString()}
+            </span>
+            <button
+              type="button"
+              className="project-archive"
+              onClick={() => handleArchive(project.id)}
+              aria-label="Archive project"
+            >
+              <Archive size={15} />
+            </button>
+            <Link to={`/projects/${project.id}`} className="project-open">
+              <span>Open</span>
+              <ArrowRight size={13} />
+            </Link>
+          </motion.article>
+        ))}
       </main>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/api";
 
 export function useDocuments(projectId) {
@@ -28,6 +28,18 @@ export function useUploadDocument(projectId) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return res.data.document;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents", projectId] });
+    },
+  });
+}
+
+export function useDeleteDocument(projectId) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (documentId) => {
+      await api.delete(`/documents/${documentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents", projectId] });
