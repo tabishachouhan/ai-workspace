@@ -8,6 +8,10 @@ import api from "../../lib/api";
 import { useAuth } from "./AuthContext";
 import "./auth.css";
 
+const GOOGLE_AUTH_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, "")}/api/auth/google`
+  : "/api/auth/google";
+
 export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -158,7 +162,7 @@ export default function RegisterPage() {
           <div className="auth-divider">or</div>
 
           <motion.a
-            href="/api/auth/google"
+            href={GOOGLE_AUTH_URL}
             className="google-button"
             whileHover={reduce ? {} : { scale: 1.01 }}
             whileTap={reduce ? {} : { scale: 0.99 }}
