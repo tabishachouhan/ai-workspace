@@ -11,6 +11,8 @@ import documentRoutes from "./modules/documents/documents.routes.js";
 import chatRoutes from "./modules/chat/chat.routes.js";
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 app.use(helmet());
 app.use(cors({ origin: env.clientUrl, credentials: true }));
